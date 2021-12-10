@@ -10,13 +10,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string>
+#include<dirent.h>
+#include <sstream>
 
 using namespace std;
 
 // disk size=512MB
 int blockSize=16777216;          // block size = 16 MB = 16777216 B 
 int diskBlocks=32;               // number of blocks = 512MB / 16MB   = 32
-int disks=0;
+
 
 
 
@@ -65,7 +67,7 @@ int* amode;
     
     for(int j=0;j<diskBlocks;j++){
         freeBlock[j]=1;
-        fileName[j]="";
+        fileName[j]="-";
         fileSize[j]=0;
         
         rmode[j]=0;
@@ -116,7 +118,7 @@ void createDisk(string name)
     Superblock* t=new Superblock();
     diskMap.insert({name,t});        
     
-  disks++;
+ 
 }
 
 void createFile(string name,string fileName)
@@ -124,7 +126,7 @@ void createFile(string name,string fileName)
      Superblock* temp=diskMap[name];
      
      int space=-1;
-     for(int i=0;i<diskBlocks;i++)
+     for(int i=1;i<diskBlocks;i++)
      {
           // cout<<i<<" ---> "<<temp->freeBlock[i]<<" "<<temp->fileName[i]<<"\n";
           if(temp->freeBlock[i]==0 && temp->fileName[i]==fileName)
@@ -154,7 +156,7 @@ void openFile(string name,string fileName,string mode)
      Superblock* temp=diskMap[name];
      
      int space=-1;
-     for(int i=0;i<diskBlocks;i++)
+     for(int i=1;i<diskBlocks;i++)
      {
           // cout<<i<<" ---> "<<temp->freeBlock[i]<<" "<<temp->fileName[i]<<"\n";
           if(temp->freeBlock[i]==0 && temp->fileName[i]==fileName)
@@ -180,7 +182,7 @@ void openFile(string name,string fileName,string mode)
 
 void readFile(string name,int i)
 {
-      if(i<0 || i>31)
+      if(i<0 || i>=diskBlocks)
     {
        printf("Invalid Descriptor\n");
     }
@@ -189,7 +191,7 @@ void readFile(string name,int i)
      int space=-1;
      
           // cout<<i<<" ---> "<<temp->freeBlock[i]<<" "<<temp->fileName[i]<<"\n";
-          if(temp->freeBlock[i]==0 && temp->fileName[i]!="")
+          if(temp->freeBlock[i]==0 && temp->fileName[i]!="-")
           {
            //  Superblock* temp=diskMap[temp->fileName[i]];
              if(temp->rmode[i]==0)
@@ -244,7 +246,7 @@ void writeFile(string name,int i,string content)
     
      
           // cout<<i<<" ---> "<<temp->freeBlock[i]<<" "<<temp->fileName[i]<<"\n";
-          if(temp->freeBlock[i]==0 && temp->fileName[i]!="")
+          if(temp->freeBlock[i]==0 && temp->fileName[i]!="-")
           {
              if(temp->wmode[i]==0)
              {
@@ -323,7 +325,7 @@ void closeFile(string name,int i)
     }
     
     Superblock* temp=diskMap[name];
-     if(temp->freeBlock[i]==0 && temp->fileName[i]!=""){
+     if(temp->freeBlock[i]==0 && temp->fileName[i]!="-"){
     temp->rmode[i]=0;
     temp->wmode[i]=0;
     temp->amode[i]=0;
@@ -337,10 +339,10 @@ void closeFile(string name,int i)
 void listFiles(string name)
 {
      Superblock* temp=diskMap[name];
-     for(int i=0;i<diskBlocks;i++)
+     for(int i=1;i<diskBlocks;i++)
      {
-          if(temp->freeBlock[i]==0 && temp->fileName[i]!="")
-          cout<<"File Descriptor is : "<<i<<" ---> "<<"Name of file is : "<<temp->fileName[i]<<" size of file in bytes : "<<temp->fileSize[i]<<"\n";
+          if(temp->freeBlock[i]==0 && temp->fileName[i]!="-")
+          cout<<"File Descriptor is : "<<i<<" ---> "<<"Name of file is : "<<temp->fileName[i]<<" ---> size of file in bytes : "<<temp->fileSize[i]<<"\n";
           
      }
 }
@@ -349,10 +351,10 @@ void listFiles(string name)
 void openedFiles(string name)
 {
      Superblock* temp=diskMap[name];
-     for(int i=0;i<diskBlocks;i++)
+     for(int i=1;i<diskBlocks;i++)
      {
-          if(temp->freeBlock[i]==0 && temp->fileName[i]!="" && (temp->rmode[i]==1 || temp->wmode[i]==1 || temp->amode[i]==1)){
-          cout<<"File Descriptor is : "<<i<<" ---> "<<"Name of file is : "<<temp->fileName[i]<<" size of file in bytes : "<<temp->fileSize[i]<<"\n";
+          if(temp->freeBlock[i]==0 && temp->fileName[i]!="-" && (temp->rmode[i]==1 || temp->wmode[i]==1 || temp->amode[i]==1)){
+          cout<<"File Descriptor is : "<<i<<" ---> "<<"Name of file is : "<<temp->fileName[i]<<" ---> size of file in bytes : "<<temp->fileSize[i]<<"\n";
           if(temp->rmode[i]==1)
           cout<<"---> read permission\n";
           if(temp->wmode[i]==1)
@@ -372,13 +374,13 @@ void deleteFile(string name,string fileName)
      Superblock* temp=diskMap[name];
      
      
-     for(int i=0;i<diskBlocks;i++)
+     for(int i=1;i<diskBlocks;i++)
      {
           // cout<<i<<" ---> "<<temp->freeBlock[i]<<" "<<temp->fileName[i]<<"\n";
           if(temp->freeBlock[i]==0 && temp->fileName[i]==fileName)
           {
               temp->freeBlock[i]=1;
-              temp->fileName[i]="";
+              temp->fileName[i]="-";
               temp->fileSize[i]=0;
               temp->rmode[i]=0;
               temp->wmode[i]=0;
@@ -396,7 +398,7 @@ void deleteFile(string name,string fileName)
 
 void displayNestedMenu()
 {
-        cout << "############################################\n" ;
+        cout << "##############################################\n";
         cout << "1 : create file \n";
         cout << "2 : open file\n" ;
         cout << "3 : read file\n" ;
@@ -407,7 +409,7 @@ void displayNestedMenu()
         cout << "8 : list of files\n" ;
         cout << "9 : list of opened files\n" ;
         cout << "10: unmount\n" << endl;
-        cout << "##############################################\n" ;
+        cout << "##############################################\n";
 }
 
 void nested_menu(string name)
@@ -454,7 +456,7 @@ void nested_menu(string name)
            printf("Enter the descriptor of file : ");
            int fd;
            cin>>fd;
-           cout << "Enter the content to write in the file : ";
+           cout << "Enter the content to write in the file : \n";
            cin.getline (message,20000);
            //cin.getline (message,20000);
            string line;
@@ -478,7 +480,7 @@ void nested_menu(string name)
             printf("Enter the descriptor of file : ");
             int fd;
             cin>>fd;
-           cout << "Enter the content to append in the file : ";
+           cout << "Enter the content to append in the file : \n";
            cin.getline (message,20000);
            
            string line;
@@ -525,15 +527,146 @@ void nested_menu(string name)
         }
          else if(n==10)
         {
+           Superblock* t=diskMap[name];
+           string store="";
+           for(int i=0;i<diskBlocks;i++)
+           store=store+to_string(t->freeBlock[i])+" ";
+           for(int i=0;i<diskBlocks;i++)
+           store=store+t->fileName[i]+" ";
+           for(int i=0;i<diskBlocks;i++)
+           store=store+to_string(t->fileSize[i])+" ";
+           
+     /*      for(int i=0;i<diskBlocks;i++)
+           store=store+to_string(t->rmode[i])+" ";
+           for(int i=0;i<diskBlocks;i++)
+           store=store+to_string(t->wmode[i])+" ";
+           for(int i=0;i<diskBlocks;i++)
+           store=store+to_string(t->amode[i])+" ";     */
+           
+      //   cout<<store<<"\n";
+           
+           int n=store.length();
+    	   char arr[n+1];
+           strcpy(arr,store.c_str());
+           
+           
+           writeFileActual(0,arr,name);
             break;
           
         }
         else
         {
+        
             printf("Invalid choice\n");
         }
     }
 
+}
+
+
+int diskExistOrNot(string s) 
+{
+DIR *directory;   // creating pointer of type dirent
+struct dirent *x;   // pointer represent directory stream
+char cwd[256];
+
+if (getcwd(cwd, sizeof(cwd)) == NULL)
+      perror("getcwd() error");
+if (( directory= opendir (cwd)) != NULL) {      // check if directory  open
+  
+  while ((x = readdir (directory)) != NULL) {
+      if(s==x->d_name)                    // file found return true or 1
+        return 1;
+  }
+}
+ 
+  
+  closedir (directory); 
+   return 0;
+}
+
+void mount(string name)
+{
+    fstream file;
+    string word;
+  
+    file.open(name.c_str());
+   
+    Superblock* t=new Superblock();
+    int i=0;
+    while (file >> word && i<32)
+    {
+      
+        stringstream obj(word);
+        int x = 0;
+        obj>>x;
+        t->freeBlock[i]=x;
+        i++;
+    }
+    
+    
+    i=0;
+    while (i<32)
+    {
+        t->fileName[i]=word;
+        i++;
+        file >> word;
+    }
+    
+    
+    i=0;
+    while ( i<32)
+    {
+       
+        stringstream obj(word);
+        long long x = 0;
+        obj>>x;
+        t->fileSize[i]=x;
+        i++;
+        file >> word;
+    }
+    
+    /*
+    i=0;
+    while (i<32)
+    {
+       
+        stringstream obj(word);
+        int x = 0;
+        obj>>x;
+        t->rmode[i]=x;
+        i++;
+        file >> word;
+    }
+    
+    
+    i=0;
+    while (i<32)
+    {
+       
+        stringstream obj(word);
+        int x = 0;
+        obj>>x;
+        t->wmode[i]=x;
+        i++;
+         file >> word;
+      
+    }
+    
+    i=0;
+    while (i<32)
+    {
+       
+        stringstream obj(word);
+        int x = 0;
+        obj>>x;
+        t->amode[i]=x;
+        i++;
+         file >> word;
+     
+    }                                                    */
+    
+    diskMap.insert({name,t});  
 }
 
 int main()
@@ -553,6 +686,9 @@ int main()
             string name;
             printf("Enter the name of disk : ");
             cin>>name;
+            if(diskExistOrNot(name))
+              printf("Disk already exists\n");
+            else  
             createDisk(name);
            // printf("Inside 1\n");
         }
@@ -561,11 +697,17 @@ int main()
              string name;
             printf("Enter the name of disk to mount : ");
             cin>>name;
-            if(diskMap.find(name)==diskMap.end()){
+            if(diskMap.find(name)!=diskMap.end()){
+            nested_menu(name);
+            /*  printf("Disk does not exist\n");
+              continue; */
+            }                   
+            else if(diskExistOrNot(name)==0)
               printf("Disk does not exist\n");
-              continue;
-            }
-             nested_menu(name);
+              else{
+              mount(name);
+              nested_menu(name);
+              }
         }
         else if(n==3)
         {
